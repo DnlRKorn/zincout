@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>HTML Forms</h2>
+
+<form id="idForm">
+  ZINC ID:<br>
+  <input type="text" name="cid" value="ZINC19795634">
+  <br>
+  Price Limit:<br>
+  <input type="text" name="price" value="*">
+  <br>
+  Desired Size:<br>
+  <input type="text" name="size" value="*">
+  <br><br>
+  <input type="submit" value="Submit">
+</form> 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+$("#idForm").submit(function(e) {
+    alert("HI");
+    e.preventDefault(); // avoid to execute the actual submit of the form.
+
+    var form = $(this);
+    var url = form.attr('action');
+	alert(form.serialize());
+    $.ajax({
+           type: "GET",
+           url: 'http://35.199.58.182/price',
+           data: form.serialize(), // serializes the form's elements.
+           success: function(data)
+           {
+               alert(data); // show response from the php script.
+           },
+           fail: function( jqXHR, textStatus ) 
+           {
+              alert( "Request failed: " + textStatus );
+		   }
+         });
+
+
+});
+</script>
+
+</body>
+</html>
