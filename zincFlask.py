@@ -14,6 +14,7 @@ def my_route():
             except:
                 return jsonify(["Price Not Float",'',''])
     desiredsize = request.args.get('size', default = '*', type = str)
+    print('PRICE QUERY',cid,desiredlimit,desiredsize)
     easypeesy = zinc.getVendorList(cid)
     buylist = zinc.makeBuyList(easypeesy)
     affordable = []

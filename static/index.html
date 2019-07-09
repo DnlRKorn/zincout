@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
-<body>
+<head>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+<h2>ZINC OUT</h2>
+<h3>A site to help you order chemicals.</h3>
 
-<h2>HTML Forms</h2>
-
-<form id="idForm">
-  <div class="form-group">
+<form id="idForm" class="form-horizontal" >
+  <div >
   ZINC ID:<br>
   <input type="text" name="cid" value="ZINC19795634">
   <br>
@@ -17,6 +19,9 @@
   <input type="text" name="size" value="*">
   <br><br>
   <input type="submit" value="Submit">
+  <div id="spinner" class="spinner-border" role="status" style="display: none;">
+    <span class="sr-only">Loading...</span>
+  </div>
   </div>
 </form> 
 <table id="myTable" class="table">
@@ -42,21 +47,21 @@ function clearTable(){
 	$('#table_body').empty();
 }
 $("#idForm").submit(function(e) {
-    alert("HI");
-    e.preventDefault(); // avoid to execute the actual submit of the form.
-
+    e.preventDefault();
+    $('#spinner').show();
     var form = $(this);
     var url = form.attr('action');
-	alert(form.serialize());
+    console.log(form.serialize());
+
     $.ajax({
            type: "GET",
-           url: 'http://35.199.58.182/price',
+           url: '/price',
            data: form.serialize(), // serializes the form's elements.
            success: function(data)
            {
+               $('#spinner').hide();
 	       clearTable();
 	       if(data.length==0){addRow('No matches','','');}
-               alert(data); // show response from the php script.
 	       console.log(data);
 	       for(i = 0; i < data.length; i++){
                   addRow(data[i][0],data[i][1],data[i][2]);
@@ -64,7 +69,10 @@ $("#idForm").submit(function(e) {
            },
            fail: function( jqXHR, textStatus ) 
            {
-              alert( "Request failed: " + textStatus );
+              $('#spinner').hide();
+              console.log( "Request failed: " + textStatus );
+	      clearTable();
+	      addRow('Request failed: '+ textStatus,'','');
 		   }
          });
 
