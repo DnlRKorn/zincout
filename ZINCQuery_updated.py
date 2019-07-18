@@ -20,6 +20,14 @@ import itertools
 import time
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+
+chrome_options = Options()
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+
+#driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
 
 
 # ## Curation of ZINC ID list
@@ -400,7 +408,7 @@ def enaminePrice(urlpage):
     
     #1st and only driver call
     
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage);
     innerHTML = driver.execute_script("return document.body.innerHTML")
     time.sleep(5) # lets the user see something
@@ -641,7 +649,7 @@ def sigmaPrice(urlpage):
     
     #first driver call
     
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage2);
     innerHTML = driver.execute_script("return document.body.innerHTML")
     time.sleep(5) # lets the user see something
@@ -681,7 +689,7 @@ def sigmaPrice(urlpage):
     # 2nd driver call
     
     if compdname != "":
-        driver = webdriver.Chrome(ChromeDriverManager().install())
+        driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
 
         driver.get(urlpage3);
         innerHTML = driver.execute_script("return document.body.innerHTML")
