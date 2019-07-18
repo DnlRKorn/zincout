@@ -36,9 +36,9 @@ chrome_options.add_argument('--disable-dev-shm-usage')
 
 
 # opens csv file with zinc ids
-with open('zincids.csv', 'rt') as csvfile:
-    reader = csv.reader(csvfile)
-    zinc_list = list(reader)
+#with open('zincids.csv', 'rt') as csvfile:
+#    reader = csv.reader(csvfile)
+#    zinc_list = list(reader)
 
 
 # In[3]:
@@ -56,25 +56,25 @@ def Remove(duplicate):
 # In[4]:
 
 
-print("# without duplicates removed =",len(zinc_list))
-zinc_list = Remove(zinc_list)
-print('# with duplicates removed =',len(zinc_list))
+#print("# without duplicates removed =",len(zinc_list))
+#zinc_list = Remove(zinc_list)
+#print('# with duplicates removed =',len(zinc_list))
 
 
 # In[5]:
 
 
 # get rid of brackets and quotations in values => zinc_list_2
-zinc_list_2 = []
-for zinc in zinc_list[1:]:
-    string = str(zinc)
-    zinc_list_2.append(string[2:-2]+" ")
+#zinc_list_2 = []
+#for zinc in zinc_list[1:]:
+#    string = str(zinc)
+#    zinc_list_2.append(string[2:-2]+" ")
 
 # something weird going on with first value in zinc_list, fixing + appending
-string0 = str(zinc_list[0])
-zinc_list_2[0] = string0[8:-2]
+#string0 = str(zinc_list[0])
+#zinc_list_2[0] = string0[8:-2]
 
-print(len(zinc_list_2))
+#print(len(zinc_list_2))
 
 
 # In[6]:
@@ -94,30 +94,21 @@ purchasable.close()
 # In[7]:
 
 
-cid = zinc_list_2[2]
-print(cid)
+#cid = zinc_list_2[2]
+#print(cid)
 
 
 # In[8]:
 
 
-response = requests.get("http://zinc15.docking.org/substances/" + cid + "/catitems/subsets/for-sale/table.html")
-response.status_code # 200 means it was downloaded successfully
-
-
-# In[9]:
-
-
-xml = BeautifulSoup(response.content,"lxml")
 #print(xml.prettify())
 
 
 # In[10]:
 
 
-def vendorURLs(zinc_id_list):
-    para_1 = []
-    for cid in zinc_id_list:
+def vendorURLs(cid):
+        para_1 = []
         response = requests.get("http://zinc15.docking.org/substances/"+ cid+"/catitems/subsets/for-sale/table.html")
         xml = BeautifulSoup(response.content,"lxml")
         for i in range(0, 20):
@@ -134,28 +125,36 @@ def vendorURLs(zinc_id_list):
                                         para_1.append([p[13:x-1],cid])
             except:
                 continue
-    return para_1
+        return para_1
 
 
 # In[11]:
 
 
-compdlinks= vendorURLs(zinc_list_2)
+#response = requests.get("http://zinc15.docking.org/substances/" + cid + "/catitems/subsets/for-sale/table.html")
+#response.status_code # 200 means it was downloaded successfully
+
+
+# In[9]:
+
+
+#xml = BeautifulSoup(response.content,"lxml")
+#compdlinks= vendorURLs(zinc_list_2)
 
 
 # In[12]:
 
 
-file1 = open("these_are_the_mother_fucking_links.txt","a") 
-for compL in compdlinks:
-    for line in compL:
-        if line[:6] == "mailto":
-            del compL
-            continue
-        else:
-            file1.write(line) 
-            file1.write("\n")
-file1.close() 
+#file1 = open("these_are_the_mother_fucking_links.txt","a") 
+#for compL in compdlinks:
+#    for line in compL:
+#        if line[:6] == "mailto":
+#            del compL
+#            continue
+#        else:
+#            file1.write(line) 
+#            file1.write("\n")
+#file1.close() 
 
 
 # NOT: achemblblock, Ambinter, astatechinc, biochempartner, cactus.nci.nih, chemistryondemand, combi-blocks (login),
@@ -168,13 +167,13 @@ file1.close()
 # In[13]:
 
 
-outF = open("organics.txt", "w")
-for line in compdlinks:
+#outF = open("organics.txt", "w")
+#for line in compdlinks:
   # write line to output file
-  if "organics" in line[0]:
-    outF.write(line[0])
-    outF.write("\n")
-outF.close()
+#  if "organics" in line[0]:
+#    outF.write(line[0])
+#    outF.write("\n")
+#outF.close()
 
 
 # ## Affordability/Vendor Filtering
@@ -224,20 +223,21 @@ def findEasyVendors(urlist):
 
 
 # In[16]:
-
-
-easy = findEasyVendors(compdlinks)
-
-
-# In[17]:
-
-
-easypeesy = []
-for e in easy:
-    if "sigma" not in e[0]:
-        easypeesy.append(e)
-    elif "|" in e[0]:
-        easypeesy.append(e)
+def makeEasy(cid):
+   compdlinks = vendorURLs(cid)
+   easy = findEasyVendors(compdlinks)
+   
+   
+   # In[17]:
+   
+   
+   easypeesy = []
+   for e in easy:
+       if "sigma" not in e[0]:
+           easypeesy.append(e)
+       elif "|" in e[0]:
+           easypeesy.append(e)
+   return easypeesy
 
 
 # ### Abovchem
@@ -334,9 +334,34 @@ def caymanPrice(urlid):
         except:
             continue
                     
+        '\xa0\xc2\xa0\xc2\xa0'
     aff = np.column_stack(((sizes, prices)))
     return aff
 
+def caymanPrice(urlid):
+    
+    sizes = []
+    prices = []
+    response = requests.get(urlid)
+    xml = BeautifulSoup(response.content,"lxml")
+    for z in range(0,20):
+        try:
+            paragraphs = xml.find_all("td")[z]
+            lines = str(paragraphs).splitlines()
+            for l in lines:
+                para = str(l).splitlines()
+                for p in para:
+                    if p[:15] == '<td class="size':
+                        idx1 = p.find('\xc2\xa0\xc2\xa0\xc2\xa0\xc2\xa0\xc2\xa0')
+                        idx2 = p.find('mg') 
+                        sizes.append(p[idx1+10:idx2+2].replace(' ',''))
+                    elif p[:16] == '<td class="price':
+                        prices.append(p[36:].replace(",",""))
+        except:
+            continue
+
+    aff = np.column_stack(((sizes, prices)))
+    return aff
 
 # ### Chemscene
 
@@ -814,93 +839,97 @@ def trcPrice(urlid):
 
 # In[32]:
 
-
-start = time.time()
-
-buylist = []
-for url in easypeesy[:250]:
-    if "abovchem" in url[0]:
-        aff = abovchemPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "apxbt" in url[0]:
-        aff = apxbtPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "cayman" in url[0]:
-        aff = caymanPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "chemscene" in url[0]:
-        aff = chemscenePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "indofine" in url[0]:
-        aff = indofinePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "matrixscientific" in url[0]:
-        aff = matrixPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "mcule" in url[0]:
-        aff = mculePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "medchemexp" in url[0]:
-        aff = medchemexpPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "molport" in url[0]:
-        aff = molportPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "targetmol" in url[0]:
-        aff = targetmolPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "trc-canada" in url[0]:
-        aff = trcPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "sigma" in url[0]:
-        aff = sigmaPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-
-end = time.time()
-print(end - start)
-
+def vendorPrice(easypeesy):   
+   start = time.time()
+   
+   buylist = []
+   for url in easypeesy[:250]:
+       if "abovchem" in url[0]:
+           aff = abovchemPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "apxbt" in url[0]:
+           aff = apxbtPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "cayman" in url[0]:
+           aff = caymanPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "chemscene" in url[0]:
+           aff = chemscenePrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "indofine" in url[0]:
+           aff = indofinePrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "matrixscientific" in url[0]:
+           aff = matrixPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "mcule" in url[0]:
+           aff = mculePrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "medchemexp" in url[0]:
+           aff = medchemexpPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "molport" in url[0]:
+           aff = molportPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "targetmol" in url[0]:
+           aff = targetmolPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "trc-canada" in url[0]:
+           aff = trcPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+       elif "sigma" in url[0]:
+           aff = sigmaPrice(url[0])
+           length = len(aff)
+           rep = list(itertools.repeat(url, length))
+           aff_2 = np.column_stack((aff, rep))
+           buylist.append(aff_2)
+   
+   end = time.time()
+   print(end - start)
+   return buylist
 
 # In[33]:
+def test():
+    cid = "ZINC19795634"
+    easypeesy = makeEasy(cid)
+    buylist = vendorPrice(easypeesy)
 
 
-for b in buylist:
-    print(b)
+    for b in buylist:
+       print(b)
 
 
 # ### Affordability Filter
@@ -908,28 +937,29 @@ for b in buylist:
 # In[34]:
 
 
-affordable = []
-
-desiredlimit = 100.0
-desiredsize = "10mg"
-
-for b in buylist:
-    for pr in b:
-        if str(pr[0]) in desiredsize:
-            if float(pr[1]) <= desiredlimit:
-                affordable.append(pr)
-                
-affordable = np.array(affordable)
-affordable = affordable[np.argsort(affordable[:,1])]
-
-
-# ### Results
-
-# In[35]:
-
-
-data = {'ZINC ID': affordable[:,3],'Package Size': affordable[:,0], 'Price ($)': affordable[:,1],'Link': affordable[:,2]}
-pd.set_option('display.max_colwidth', -1)
-df = pd.DataFrame(data=data)
-display(df)
-
+    affordable = []
+    
+    desiredlimit = 100.0
+    desiredsize = "10mg"
+    
+    for b in buylist:
+        for pr in b:
+            if str(pr[0]) in desiredsize:
+                if float(pr[1]) <= desiredlimit:
+                    affordable.append(pr)
+                    
+    affordable = np.array(affordable)
+    print(affordable)
+    affordable = affordable[np.argsort(affordable[:,1])]
+    
+    
+    # ### Results
+    
+    # In[35]:
+    
+    
+    data = {'ZINC ID': affordable[:,3],'Package Size': affordable[:,0], 'Price ($)': affordable[:,1],'Link': affordable[:,2]}
+    json = pd.DataFrame(data=data).to_json()
+    print(json)
+test()
+    
