@@ -20,12 +20,11 @@ def my_route():
     affordable = []
     
     for b1,b2,b3 in buylist:
-       b = [[b1,b2,b3]] 
-       for pr in b:
-         print(pr)
-         if desiredsize=='*' or str(pr[0]) == desiredsize:
-           if desiredlimit=='*' or float(pr[1]) <= desiredlimit:
-                affordable.append(pr)
+       pr = [b1,b2,b3]
+       print(pr)
+       if desiredsize=='*' or str(pr[0]) == desiredsize:
+         if desiredlimit=='*' or float(pr[1]) <= desiredlimit:
+            affordable.append(pr)
     print(affordable)
     return jsonify(affordable)
 
