@@ -317,50 +317,27 @@ def apxbtPrice(urlid):
 
 
 def caymanPrice(urlid):
-    
+    #Example url https://www.caymanchem.com/product/10011249 
     sizes = []
     prices = []
     response = requests.get(urlid)
-    xml = BeautifulSoup(response.content,"lxml")
-    for z in range(0,20):
-        try:
-            paragraphs = xml.find_all("td")[z]
-            lines = str(paragraphs).splitlines()
-            for l in lines:
-                para = str(l).splitlines()
-                for p in para:
-                    if p[:15] == '<td class="size':
-                        sizes.append(p[40:45].replace(" ",""))
-                    elif p[:16] == '<td class="price':
-                        prices.append(p[36:].replace(",",""))
-        except:
-            continue
-                    
-        '\xa0\xc2\xa0\xc2\xa0'
-    aff = np.column_stack(((sizes, prices)))
-    return aff
-
-def caymanPrice(urlid):
+    xml = BeautifulSoup(response.text,features="lxml")
     
-    sizes = []
-    prices = []
-    response = requests.get(urlid)
-    xml = BeautifulSoup(response.content,"lxml")
-    for z in range(0,20):
-        try:
-            paragraphs = xml.find_all("td")[z]
-            lines = str(paragraphs).splitlines()
-            for l in lines:
-                para = str(l).splitlines()
-                for p in para:
-                    if p[:15] == '<td class="size':
-                        idx1 = p.find('\xc2\xa0\xc2\xa0\xc2\xa0\xc2\xa0\xc2\xa0')
-                        idx2 = p.find('mg') 
-                        sizes.append(p[idx1+10:idx2+2].replace(' ',''))
-                    elif p[:16] == '<td class="price':
-                        prices.append(p[36:].replace(",",""))
-        except:
-            continue
+    #Find all td elements with class Size. These have the size of molecule for sale.
+    for size_td in xml.find_all('td',{'class':'size'}):
+      #Get the text from the element.
+      size = size_td.text
+      #Remove all the non-ascii characters (weird characters to help chrome display, not useful to us). Leaves only 50 mg.
+      size = size.encode('ascii','ignore').strip()
+      #Find the next element in the page with the class "price". This will be the price of the drug for the size we just saw.
+      price_td = size_td.find_next_sibling('td',{'class','price'})
+      #Get the price text.
+      price = price_td.text
+      price = price.encode('ascii','ignore').strip()
+      #Remove the dollar sign from the price.
+      price = price.strip('$')
+      sizes.append(size)
+      prices.append(price)
 
     aff = np.column_stack(((sizes, prices)))
     return aff
@@ -866,6 +843,11 @@ def processUrl(url):
            aff_2 = np.column_stack((aff, rep))
            return aff_2
        elif "cayman" in url[0]:
+           #url[0] looks like http://www.caymanchem.com/app/template/Product.vm/catalog/10011249
+           code = url[0].split('/')[-1]
+           #Grab the number at the end of the list. So for example code will be 10011249
+           url[0] = 'https://www.caymanchem.com/product/' + code 
+           #Make a new link to page https://www.caymanchem.com/product/10011249 which is static
            aff = caymanPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
