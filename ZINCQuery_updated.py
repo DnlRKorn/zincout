@@ -334,8 +334,10 @@ def caymanPrice(urlid):
       #Get the price text.
       price = price_td.text
       price = price.encode('ascii','ignore').strip()
-      #Remove the dollar sign from the price.
-      price = price.strip('$')
+      #Remove the dollar sign from the price. Also removes comma, because price can be $1,200. Python doesn't like that.
+      print(price)
+      price = price.strip('$').replace(",",'')
+      print(price)
       sizes.append(size)
       prices.append(price)
 
