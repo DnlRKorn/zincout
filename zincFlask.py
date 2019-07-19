@@ -1,6 +1,7 @@
 from flask import request,jsonify, Flask
 
-import zinc
+#import zinc
+import ZINCQuery_updated as zinc
 
 app = Flask(__name__)
 
@@ -15,16 +16,17 @@ def my_route():
                 return jsonify(["Price Not Float",'',''])
     desiredsize = request.args.get('size', default = '*', type = str)
     print('PRICE QUERY',cid,desiredlimit,desiredsize)
-    easypeesy = zinc.getVendorList(cid)
+    easypeesy = zinc.makeEasy(cid)
     buylist = zinc.makeBuyList(easypeesy)
     affordable = []
     
-    for b1,b2,b3 in buylist:
-       pr = [b1,b2,b3]
-       print(pr)
-       if desiredsize=='*' or str(pr[0]) == desiredsize:
-         if desiredlimit=='*' or float(pr[1]) <= desiredlimit:
-            affordable.append(pr)
+    for b in buylist:
+       for pr in b:
+         if desiredsize=='*' or str(pr[0]) == desiredsize:
+           if desiredlimit=='*' or float(pr[1]) <= desiredlimit:
+              affordable.append([pr[0],pr[1],pr[2]])
+    print(affordable)
+    affordable.sort(key=lambda x: float(x[1]))
     print(affordable)
     return jsonify(affordable)
 

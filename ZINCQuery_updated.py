@@ -13,18 +13,20 @@ import sys
 import urllib
 import requests
 
-import pandas as pd
+#import pandas as pd
 from bs4 import BeautifulSoup
 import itertools
 
 import time
 from selenium import webdriver
+#from joblib import Parallel, delayed
+#import concurrent.futures
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 chrome_options = Options()
-chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--headless')
 chrome_options.add_argument('--disable-dev-shm-usage')
 
 #driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
@@ -674,15 +676,17 @@ def sigmaPrice(urlpage):
     
     #first driver call
     
-    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
+    #driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
+    driver = webdriver.Chrome('/usr/bin/chromedriver',chrome_options=chrome_options)
     driver.get(urlpage2);
     innerHTML = driver.execute_script("return document.body.innerHTML")
-    time.sleep(5) # lets the user see something
-
-    html = str(innerHTML).splitlines()
-
-    time.sleep(5) # lets the user see something
     driver.quit()
+    time.sleep(5) # lets the user see something
+
+    print(type(innerHTML))
+    time.sleep(1)
+    html = innerHTML.splitlines()
+
     
     #What's the real compound name because this wasn't already convoluted enough
 
@@ -720,9 +724,9 @@ def sigmaPrice(urlpage):
         innerHTML = driver.execute_script("return document.body.innerHTML")
         time.sleep(5) # lets the user see something
 
-        html = str(innerHTML).splitlines()
+        html = innerHTML.splitlines()
 
-        time.sleep(5) # lets the user see something
+        #time.sleep(5) # lets the user see something
         driver.quit()
     
     #making sure page loads
@@ -838,128 +842,149 @@ def trcPrice(urlid):
 # ## Vendor Prices
 
 # In[32]:
+#import multiprocessing
 
-def vendorPrice(easypeesy):   
-   start = time.time()
-   
-   buylist = []
-   for url in easypeesy[:250]:
+#inputs = range(10) 
+#def processInput(i):
+#        return i * i
+
+#    num_cores = multiprocessing.cpu_count()
+
+#    results = Parallel(n_jobs=num_cores)(delayed(processInput)(i) for i in inputs)
+
+def processUrl(url):
        if "abovchem" in url[0]:
            aff = abovchemPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "apxbt" in url[0]:
            aff = apxbtPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "cayman" in url[0]:
            aff = caymanPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "chemscene" in url[0]:
            aff = chemscenePrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "indofine" in url[0]:
            aff = indofinePrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "matrixscientific" in url[0]:
            aff = matrixPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "mcule" in url[0]:
            aff = mculePrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "medchemexp" in url[0]:
            aff = medchemexpPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "molport" in url[0]:
            aff = molportPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "targetmol" in url[0]:
            aff = targetmolPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "trc-canada" in url[0]:
            aff = trcPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
        elif "sigma" in url[0]:
            aff = sigmaPrice(url[0])
            length = len(aff)
            rep = list(itertools.repeat(url, length))
            aff_2 = np.column_stack((aff, rep))
-           buylist.append(aff_2)
+           return aff_2
+
+def makeBuyList(easypeesy):   
+   start = time.time()
    
+   #buylist = Parallel(n_jobs=3)(delayed(processUrl)(url) for url in easypeesy[:250])
+   #buylist = []
+   #with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+   #   executor.map(processUrl, easypeesy)
+   #   future_to_url = {executor.submit(processUrl, url): url for url in easypeesy}
+   #   for future in concurrent.futures.as_completed(future_to_url):
+   #       buylist.append(future.result())
+   buylist = [processUrl(url) for url in easypeesy[:250]]
+   print(buylist)
    end = time.time()
    print(end - start)
    return buylist
 
 # In[33]:
-def test():
-    cid = "ZINC19795634"
+def affordable(cid="ZINC19795634"):
     easypeesy = makeEasy(cid)
-    buylist = vendorPrice(easypeesy)
+    buylist = makeBuyList(easypeesy)
 
 
     for b in buylist:
        print(b)
 
 
-# ### Affordability Filter
-
-# In[34]:
 
 
+    print('AFFORDABLE')
     affordable = []
     
-    desiredlimit = 100.0
+    desiredlimit = 300.0
     desiredsize = "10mg"
     
     for b in buylist:
         for pr in b:
+            print(pr)
+            print('0',pr[0])
+            print('1',pr[1])
             if str(pr[0]) in desiredsize:
+                print("PASSED")
+
                 if float(pr[1]) <= desiredlimit:
                     affordable.append(pr)
                     
-    affordable = np.array(affordable)
-    print(affordable)
-    affordable = affordable[np.argsort(affordable[:,1])]
+    return affordable
+#affordable()
+#affordable("ZINC00000882")
+    #affordable = np.array(affordable)
+    #affordable = affordable[np.argsort(affordable[:,1])]
     
     
     # ### Results
     
     # In[35]:
     
+     
+    #data = {'ZINC ID': affordable[:,3],'Package Size': affordable[:,0], 'Price ($)': affordable[:,1],'Link': affordable[:,2]}
+    #json = pd.DataFrame(data=data).to_json()
+    #print(json)
     
-    data = {'ZINC ID': affordable[:,3],'Package Size': affordable[:,0], 'Price ($)': affordable[:,1],'Link': affordable[:,2]}
-    json = pd.DataFrame(data=data).to_json()
-    print(json)
-test()
     
