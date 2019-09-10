@@ -18,9 +18,16 @@ from bs4 import BeautifulSoup
 import itertools
 
 import time
+
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
+
+chrome_options = Options()
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--disable-dev-shm-usage')
 
 # ## Curation of ZINC ID list
 
@@ -28,9 +35,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 # opens csv file with zinc ids
-with open('zincids.csv', 'rt') as csvfile:
-    reader = csv.reader(csvfile)
-    zinc_list = list(reader)
+#with open('zincids.csv', 'rt') as csvfile:
+#    reader = csv.reader(csvfile)
+#    zinc_list = list(reader)
 
 
 # In[3]:
@@ -47,15 +54,15 @@ def Remove(duplicate):
 
 # In[4]:
 
-
+'''
 print("# without duplicates removed =",len(zinc_list))
 zinc_list = Remove(zinc_list)
 print('# with duplicates removed =',len(zinc_list))
-
+'''
 
 # In[5]:
 
-
+'''
 # get rid of brackets and quotations in values => zinc_list_2
 zinc_list_2 = []
 for zinc in zinc_list[1:]:
@@ -67,7 +74,7 @@ string0 = str(zinc_list[0])
 zinc_list_2[0] = string0[8:-2]
 
 print(len(zinc_list_2))
-
+'''
 
 # In[6]:
 
@@ -85,22 +92,22 @@ purchasable.close()
 
 # In[7]:
 
-
+'''
 cid = zinc_list_2[2]
 print(cid)
-
+'''
 
 # In[8]:
 
-
+'''
 response = requests.get("http://zinc15.docking.org/substances/" + cid + "/catitems/subsets/for-sale/table.html")
 response.status_code # 200 means it was downloaded successfully
-
+'''
 
 # In[9]:
 
 
-xml = BeautifulSoup(response.content,"lxml")
+#xml = BeautifulSoup(response.content,"lxml")
 #print(xml.prettify())
 
 
@@ -132,19 +139,19 @@ def vendorURLs(zinc_id_list):
 # In[11]:
 
 
-compdlinks= vendorURLs(zinc_list_2)
+#compdlinks= vendorURLs(zinc_list_2)
 
 
 # In[12]:
 
 
-for compd in compdlinks:
-    print(compd)
+#for compd in compdlinks:
+#    print(compd)
 
 
 # In[13]:
 
-
+'''
 file1 = open("these_are_the_mother_fucking_links.txt","a") 
 for compL in compdlinks:
     for line in compL:
@@ -155,7 +162,7 @@ for compL in compdlinks:
             file1.write(line) 
             file1.write("\n")
 file1.close() 
-
+'''
 
 # NOT: achemblblock, Ambinter, astatechinc, biochempartner, cactus.nci.nih, chemistryondemand, combi-blocks (login),
 #     hit2lead, labnetwork (~), molcore (no price listed), orderbb, orders.frontierssi,
@@ -166,7 +173,7 @@ file1.close()
 
 # In[15]:
 
-
+'''
 outF = open("sigma.txt", "w")
 for line in compdlinks:
   # write line to output file
@@ -175,7 +182,7 @@ for line in compdlinks:
         outF.write(line[0])
         outF.write("\n")
 outF.close()
-
+'''
 
 # ## Affordability/Vendor Filtering
 
@@ -225,7 +232,7 @@ def findEasyVendors(urlist):
 
 # In[15]:
 
-
+'''
 easy = findEasyVendors(compdlinks)
 
 
@@ -238,11 +245,23 @@ for e in easy:
         easypeesy.append(e)
     elif "|" in e[0]:
         easypeesy.append(e)
-
+'''
 
 # ### Abovchem
 
 # In[17]:
+def makeEasy(cid):
+   compdlinks = vendorURLs(cid)
+   easy = findEasyVendors(compdlinks)
+   
+   easypeesy = []
+   for e in easy:
+       if "sigma" not in e[0]:
+           easypeesy.append(e)
+       elif "|" in e[0]:
+           easypeesy.append(e)
+   return easypeesy
+
 
 
 def abovchemPrice(urlid):
@@ -268,8 +287,6 @@ def abovchemPrice(urlid):
 
 
 # ### Apex Biotech
-
-# In[18]:
 
 
 def apxbtPrice(urlid):
@@ -301,7 +318,7 @@ def apxbtPrice(urlid):
 def caymanPrice(urlpage):
     
     #calling driver
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage);
     innerHTML = driver.execute_script("return document.body.innerHTML")
     time.sleep(5) # lets the user see something
@@ -396,14 +413,18 @@ def chemscenePrice(compdurl):
 
 # this function is not perfect, does not filter search results by stereochem, requires user to do this
 def enaminePrice(urlpage):
+    print(urlpage)
     
     #1st and only driver call
     
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage);
     innerHTML = driver.execute_script("return document.body.innerHTML")
     time.sleep(5) # lets the user see something
+    #html = innerHTML.encode('ascii','ignore').splitlines()
+
     html = str(innerHTML).splitlines()
+
     time.sleep(5) # lets the user see something
     driver.quit()
     
@@ -641,7 +662,7 @@ def sigmaPrice(urlpage):
     
     #first driver call
     
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage2);
     innerHTML = driver.execute_script("return document.body.innerHTML")
     time.sleep(5) # lets the user see something
@@ -681,7 +702,7 @@ def sigmaPrice(urlpage):
     # 2nd driver call
     
     if compdname != "":
-        driver = webdriver.Chrome(ChromeDriverManager().install())
+        driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
 
         driver.get(urlpage3);
         innerHTML = driver.execute_script("return document.body.innerHTML")
@@ -803,100 +824,101 @@ def trcPrice(urlid):
 
 # In[35]:
 
-
-start = time.time()
-
-buylist = []
-for url in easypeesy[:50]:
-    if "abovchem" in url[0]:
-        aff = abovchemPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "apxbt" in url[0]:
-        aff = apxbtPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "cayman" in url[0]:
-        aff = caymanPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "chemscene" in url[0]:
-        aff = chemscenePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "indofine" in url[0]:
-        aff = indofinePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "matrixscientific" in url[0]:
-        aff = matrixPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "mcule" in url[0]:
-        aff = mculePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "medchemexp" in url[0]:
-        aff = medchemexpPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "molport" in url[0]:
-        aff = molportPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "targetmol" in url[0]:
-        aff = targetmolPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "trc-canada" in url[0]:
-        aff = trcPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    '''elif "sigma" in url[0]:
-        aff = sigmaPrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)
-    elif "enamine" in url[0]:
-        aff = enaminePrice(url[0])
-        length = len(aff)
-        rep = list(itertools.repeat(url, length))
-        aff_2 = np.column_stack((aff, rep))
-        buylist.append(aff_2)'''
+def makeBuyList(easypeesy): 
+    start = time.time()
     
-
-end = time.time()
-print(end - start)
-
-
+    buylist = []
+    for url in easypeesy[:50]:
+        if "abovchem" in url[0]:
+            aff = abovchemPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "apxbt" in url[0]:
+            aff = apxbtPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "cayman" in url[0]:
+            aff = caymanPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "chemscene" in url[0]:
+            aff = chemscenePrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "indofine" in url[0]:
+            aff = indofinePrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "matrixscientific" in url[0]:
+            aff = matrixPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "mcule" in url[0]:
+            aff = mculePrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "medchemexp" in url[0]:
+            aff = medchemexpPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "molport" in url[0]:
+            aff = molportPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "targetmol" in url[0]:
+            aff = targetmolPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "trc-canada" in url[0]:
+            aff = trcPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "sigma" in url[0]:
+            aff = sigmaPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        elif "enamine" in url[0]:
+            aff = enaminePrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
+        
+    
+    end = time.time()
+    #print(end - start)
+    return buylist
+    
+    
 # In[36]:
 
 
-for b in buylist:
-    print(b)
+#for b in buylist:
+#    print(b)
 
 
 # ### Affordability Filter
@@ -918,7 +940,7 @@ def getVendorName(url):
 
 # In[44]:
 
-
+'''
 affordable = []
 vend = []
 
@@ -983,4 +1005,4 @@ df.insert(loc=3, column='Price per mg ($/mg)', value=pricepmg)
 
 df.sort_values(by = ["Price per mg ($/mg)"],inplace = True) #inplace actually updates the df
 display(df)
-
+'''

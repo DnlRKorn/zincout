@@ -2,6 +2,7 @@
 <html>
 <head>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
 </head>
 <body>
 <h2>ZINC OUT</h2>
@@ -27,24 +28,34 @@
 <table id="myTable" class="table">
   <thead>
     <tr>
-      <th scope="col">Quantity</th>
+      <th scope="col">Amount</th>
       <th scope="col">Price</th>
       <th scope="col">Website</th>
+      <th scope="col">Price/Mg</th>
+      <th scope="col">Vendor</th>
     </tr>
   </thead>
   <tbody id="table_body">
   </tbody>
 </table>
 
-    <script src="https://code.jquery.com/jquery-3.1.1.min.js">
+<script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 <script>
-function addRow(price,size,url){
-	$('#table_body').append('<tr><td>'+price+'</td><td>'+size+'</td><td><a href="'+url+'">'+url+'</a></td></tr>');
+//var t = $('#example').DataTable();
+var t = $('#myTable').DataTable();
+function addRow(price,size,url,permg,vendor){
+//	$('#table_body').append('<tr><td>'+price+'</td><td>'+size+'</td><td><a href="'+url+'">'+url+'</a></td><<td>'+permg+'</td><td>'+vendor+'</td>/tr>');
+	t.row.add([price,size,url,permg,vendor]);
+	t.draw();
 }
 function clearTable(){
-	$('#table_body').empty();
+//	$('#table_body').empty();
+	t.clear();
+	t.draw();
 }
 $("#idForm").submit(function(e) {
     e.preventDefault();
@@ -64,7 +75,7 @@ $("#idForm").submit(function(e) {
 	       if(data.length==0){addRow('No matches','','');}
 	       console.log(data);
 	       for(i = 0; i < data.length; i++){
-                  addRow(data[i][0],data[i][1],data[i][2]);
+                  addRow(data[i][0],data[i][1],data[i][2],data[i][3],data[i][4]);
 	       }
            },
            fail: function( jqXHR, textStatus ) 
@@ -78,7 +89,7 @@ $("#idForm").submit(function(e) {
 
 
 });
-addRow('100','1mg','http://www.neverssl.com');
+addRow('100','1mg','http://www.neverssl.com','100','Marxet Place');
 //clearTable();
 </script>
 
