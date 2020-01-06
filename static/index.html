@@ -7,11 +7,15 @@
 <body>
 <h2>ZINC OUT</h2>
 <h3>A site to help you order chemicals.</h3>
-
+ 
 <form id="idForm" class="form-horizontal" >
   <div >
   ZINC ID:<br>
-  <input type="text" name="cid" value="ZINC19795634">
+<!--  <input type="textarea" name="cid" value="ZINC19795634">
+-->
+  <textarea rows="4" cols="50" name="cid" form="idForm">
+ZINC19795634
+  </textarea>
   <br>
   Price Limit:<br>
   <input type="text" name="price" value="*">
@@ -25,13 +29,28 @@
   </div>
   </div>
 </form> 
+<h3>Available</h3>
 <table id="myTable" class="table">
   <thead>
     <tr>
+      <th scope="col">Zinc ID</th>
       <th scope="col">Amount</th>
       <th scope="col">Price</th>
       <th scope="col">Website</th>
       <th scope="col">Price/Mg</th>
+      <th scope="col">Vendor</th>
+    </tr>
+  </thead>
+  <tbody id="table_body">
+  </tbody>
+</table>
+<button type="button" id="csvbtn" class="btn btn-default">Download</button>
+<h3>Unavailable</h3>
+<table id="unavailable" class="table">
+  <thead>
+    <tr>
+      <th scope="col">Zinc ID</th>
+      <th scope="col">Link</th>
       <th scope="col">Vendor</th>
     </tr>
   </thead>
@@ -45,11 +64,23 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 <script>
+
+row_data = ["Zinc ID","Amount","Price","Website","Price/Mg","Vendor"]
+/*
+var csv_name = "ains_" + i +"_csv.csv";
+$(document.getElementById(csv_name)).prop("href",sameEncodedUri);
+$(document.getElementById(csv_name)).prop("download",csv_name);
+$(document.getElementById(csv_name)).text("Download Similar Compounds with matching PAINS Alerts as CSV");
+$(document.getElementById(csv_name)).addClass("btn btn-primary btn-lg");
+*/
+
+
 //var t = $('#example').DataTable();
 var t = $('#myTable').DataTable();
-function addRow(price,size,url,permg,vendor){
+var t2 = $('#unavailable').DataTable();
+function addRow(price,size,url,permg,vendor,zincId){
 //	$('#table_body').append('<tr><td>'+price+'</td><td>'+size+'</td><td><a href="'+url+'">'+url+'</a></td><<td>'+permg+'</td><td>'+vendor+'</td>/tr>');
-	t.row.add([price,size,url,permg,vendor]);
+	t.row.add([zincId,price,size,url,permg,vendor]);
 	t.draw();
 }
 function clearTable(){
@@ -72,10 +103,25 @@ $("#idForm").submit(function(e) {
            {
                $('#spinner').hide();
 	       clearTable();
-	       if(data.length==0){addRow('No matches','','');}
+	       notavail = data["notavailable"];
+	       data = data["available"];
+	       if(data.length==0){addRow('No matches','','','','','');}
 	       console.log(data);
+               var sameCsvContent = "data:text/csv;charset=utf-8,";
+               sameCsvContent += row_data.join(",");
+               sameCsvContent += "\r\n";//add headers
 	       for(i = 0; i < data.length; i++){
-                  addRow(data[i][0],data[i][1],data[i][2],data[i][3],data[i][4]);
+                  addRow(data[i][0],data[i][1],data[i][2],data[i][3],data[i][4],data[i][5]);
+                  sameCsvContent += [data[i][5],data[i][0],data[i][1],data[i][2],data[i][3],data[i][4]].join(",");
+                  sameCsvContent += "\r\n";//add headers
+
+	       }
+	       var sameEncodedUri = encodeURI(sameCsvContent);
+	       $("#csvbtn").prop("href",sameEncodedUri);
+	       $("#csvbtn").prop("download","zincout.csv");
+	       for(i = 0; i < notavail.length; i++){
+	          t2.row.add([notavail[i][2],notavail[i][0],notavail[i][1]]);
+	          t2.draw();
 	       }
            },
            fail: function( jqXHR, textStatus ) 
@@ -83,13 +129,13 @@ $("#idForm").submit(function(e) {
               $('#spinner').hide();
               console.log( "Request failed: " + textStatus );
 	      clearTable();
-	      addRow('Request failed: '+ textStatus,'','');
+	      addRow('Request failed:' + textStatus,'','','','','');
 		   }
          });
 
 
 });
-addRow('100','1mg','http://www.neverssl.com','100','Marxet Place');
+addRow('100','1mg','http://www.neverssl.com','100','Marxet Place','ZINC123');
 //clearTable();
 </script>
 

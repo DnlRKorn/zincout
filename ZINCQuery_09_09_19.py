@@ -22,6 +22,9 @@ import time
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 chrome_options = Options()
@@ -119,9 +122,9 @@ def vendorURLs(zinc_id_list):
     for cid in zinc_id_list:
         response = requests.get("http://zinc15.docking.org/substances/"+ cid+"/catitems/subsets/for-sale/table.html")
         xml = BeautifulSoup(response.content,"lxml")
-        for i in range(0, 20):
+        for paragraphs in xml.find_all("td"):
             try:
-                paragraphs = xml.find_all("td")[i]
+               # paragraphs = xml.find_all("td")[i]
                 lines = str(paragraphs).splitlines()
                 for l in lines:
                     para = str(l).splitlines()
@@ -250,17 +253,24 @@ for e in easy:
 # ### Abovchem
 
 # In[17]:
+debug = True
 def makeEasy(cid):
-   compdlinks = vendorURLs(cid)
-   easy = findEasyVendors(compdlinks)
-   
+   compdlinks = vendorURLs([cid])
+   if(debug): print(compdlinks)
+   easy = findEasyVendors(compdlinks) 
    easypeesy = []
    for e in easy:
        if "sigma" not in e[0]:
            easypeesy.append(e)
        elif "|" in e[0]:
            easypeesy.append(e)
-   return easypeesy
+   noteasy = [x for x in compdlinks if x not in easypeesy]
+   if(debug):
+       print("COMP",compdlinks)
+       print("EASY",easy)
+       print("EASYPEASY",easypeesy)
+       print('NOT EASY',noteasy)
+   return [easypeesy,noteasy]
 
 
 
@@ -318,16 +328,42 @@ def apxbtPrice(urlid):
 def caymanPrice(urlpage):
     
     #calling driver
+    print('cayman1')
+    idx = urlpage.split('/')[-1]
+    urlpage = "https://www.caymanchem.com/product/%s" % idx
     driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage);
+    print('cayman2')
+    #innerHTML = driver.execute_script("return document.body.innerHTML")
+    #time.sleep(5) # lets the user see something
+    print('cayman3')
+    element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "text-lato-bold"))
+    )
+    '''
+    try:
+       print('hi')
+       element = WebDriverWait(driver, 10).until(
+          EC.presence_of_element_located((By.ByClassName, "text-lato-bold"))
+       )
+    except:
+        print('hi2')
+        return
+    finally:
+        driver.quit()
+        '''
     innerHTML = driver.execute_script("return document.body.innerHTML")
-    time.sleep(5) # lets the user see something
+    #html = str(innerHTML).splitlines()
+    html = innerHTML.encode("ascii", "ignore").splitlines()
 
-    html = str(innerHTML).splitlines()
 
-    time.sleep(5) # lets the user see something
+    print('cayman4')
+    #time.sleep(5) # lets the user see something
+    print('cayman5')
     driver.quit()
+    print('cayman6')
     
+    #text-lato-bold
     # fetching price and sizes
     sizes = []
     prices = []
@@ -825,10 +861,12 @@ def trcPrice(urlid):
 # In[35]:
 
 def makeBuyList(easypeesy): 
+    print('making buylist')
     start = time.time()
     
     buylist = []
     for url in easypeesy[:50]:
+        print(url)
         if "abovchem" in url[0]:
             aff = abovchemPrice(url[0])
             length = len(aff)
@@ -933,8 +971,16 @@ def getVendorName(url):
     if "indofine" in url:
         idx3 = url.find("//")
         vend = (url[idx3+2:idx2].capitalize())
+    elif "mcule" in url:
+        vend = "Mcule"
+    elif "orderbb" in url:
+        vend = "Emolecules"
     else:
         vend = (url[idx1+4:idx2].capitalize())
+    if('Ps://' in vend): vend = vend[5:].capitalize()
+    elif('P://' in vend): vend = vend[5:].capitalize()
+    elif('Vitasmlab.biz' in vend): vend = 'Vitasmlab.biz' 
+
     return vend
 
 
