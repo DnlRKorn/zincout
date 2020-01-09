@@ -223,8 +223,7 @@ def Remove(duplicate):
 
 def findEasyVendors(urlist):
     vendors = []
-    goodvendors = ["caymanchem", "chem-space", "indofinechemical", "matrixscientific", "mcule", "molport", "apexbt", 
-                  "abovchem", "bldpharm", "targetmol", "trc-canada", "chemscene", "medchemexp", "sigma", "enamine"]
+    goodvendors = ["caymanchem", "chem-space", "indofinechemical", "matrixscientific", "mcule", "molport", "apexbt", "abovchem", "bldpharm", "targetmol", "trc-canada", "chemscene", "medchemexp", "sigma", "enamine","aksci"]
     for row in urlist:
         for v in goodvendors:
             if v in row[0]:
@@ -398,7 +397,7 @@ def chemscenePrice(compdurl):
     xml = BeautifulSoup(response.content,"lxml")
     
     for div in xml:
-        d = str(div).splitlines()
+        d = div.encode('ascii','ignore').splitlines()
         for ind in d: 
             line = ind.splitlines()
             if "CAS No." in str(line):
@@ -422,7 +421,7 @@ def chemscenePrice(compdurl):
     response = requests.get("https://www.chemscene.com/" + correctcas + ".html")
     xml = BeautifulSoup(response.content,"lxml")
     for div in xml:
-        d = str(div).splitlines()
+        d = div.encode('ascii','ignore').splitlines()
         for ind in d:
             if ' prctbl-size' in str(ind):
                 for i in range(len(ind)):
@@ -641,12 +640,16 @@ def medchemexpPrice(urlid):
 
 
 def molportPrice(urlid):
+    print('molport1')
     sizes = []
     prices = []
     response = requests.get(urlid)
     xml = BeautifulSoup(response.content,"lxml")
+    print('molport2')
     for div in xml:
+        print('molport3')
         d = str(div).splitlines()
+        print('molport3')
         for ind in d:
             if '"sku"' in ind:
                 for j in range(len(ind)):
@@ -664,10 +667,104 @@ def molportPrice(urlid):
     aff = np.column_stack((sizes, prices))
     return aff
 
+def aksciPrice(urlid):
+    #https://aksci.com/item_detail.php?cat=F336
+   ak_id = urlid.split('=')[1] 
+   cookies = {
+       'PHPSESSID': '4b289e9ols212h2h2hss60kct6',
+       'aksci': '99+50+1+1+DESC',
+       'wcsid': 'kshzPG57lRP76TdU7G5Jx0U5C62SBrId',
+       'hblid': 'mTfqmwGq6tN8P3lj7G5Jx0U2BoyBCODr',
+       '_okdetect': '%7B%22token%22%3A%2215785917718880%22%2C%22proto%22%3A%22https%3A%22%2C%22host%22%3A%22aksci.com%22%7D',
+       'olfsk': 'olfsk06708603080311826',
+       '_okbk': 'cd4%3Dtrue%2Cvi5%3D0%2Cvi4%3D1578591775255%2Cvi3%3Dactive%2Cvi2%3Dfalse%2Cvi1%3Dfalse%2Ccd8%3Dchat%2Ccd6%3D0%2Ccd5%3Daway%2Ccd3%3Dfalse%2Ccd2%3D0%2Ccd1%3D0%2C',
+       '_ok': '3507-598-10-5787',
+       'aksci_b': '%3B+4334AH',
+       '_oklv': '1578592098764%2CkshzPG57lRP76TdU7G5Jx0U5C62SBrId',
+   }
+   
+   headers = {
+       'Connection': 'keep-alive',
+       'Pragma': 'no-cache',
+       'Cache-Control': 'no-cache',
+       'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.86 Mobile Safari/537.36',
+       'Accept': '*/*',
+       'Sec-Fetch-Site': 'same-origin',
+       'Sec-Fetch-Mode': 'cors',
+       'Referer': 'https://aksci.com/item_detail.php?cat=4334AH',
+       'Accept-Encoding': 'gzip, deflate, br',
+       'Accept-Language': 'en-US,en;q=0.9',
+   }
+   
+   params = (
+       ('cat', ak_id),
+       ('width', '420'),
+   )
+   
+   response = requests.get('https://aksci.com/pricing.php', headers=headers, params=params, cookies=cookies)
+   
+   soup = BeautifulSoup(response.text, 'lxml')
+   sizes = []
+   prices = []
+   for x in soup.findAll('input'):
+      prices.append(x['price'])
+      sizes.append(x['id'].split('_')[1])
+   #return prices
+   aff = np.column_stack((sizes, prices))
+   return aff
 
-# ### Sigma Aldrich
+def targetmolPrice(urlid):
+    sizes = []
+    prices = []
+    response = requests.get(urlid)
+    xml = BeautifulSoup(response.content,"lxml")
+    for z in range(0,20):
+        paragraphs = xml.find_all("td")[z]
+        lines = str(paragraphs).splitlines()
+        mat = lines[0].splitlines()
+        for m in mat:
+            if "." in str(m):
+                for x in range(len(m)):
+                    if m[x:x+5] == '</td>':
+                        prices.append(m[4:x])
+                del m
+            elif " " in m:
+                if "<p" not in m:
+                    if "td " not in m:
+                        for x in range(len(m)):
+                            if m[x:x+5] == '</td>':
+                                sizes.append(m[4:x].replace(" ",""))
+    aff = np.column_stack((sizes, prices))
+    return aff
 
-# In[31]:
+
+# ### Toronto Research Chemicals - Canada
+
+# In[34]:
+
+
+def trcPrice(urlid):
+    prices = []
+    sizes = []
+    pr = []
+    response = requests.get(urlid)
+    xml = BeautifulSoup(response.content,"lxml")
+    for z in range(0,20):
+        paragraphs = xml.find_all("div")[z]
+        lines = str(paragraphs).splitlines()
+        for m in lines:
+            if "data-price=" in m:
+                #prices
+                idx1 = m.find('data-price="')
+                idx2 = m.find('" data-size')
+                prices.append(m[idx1+12:idx2])
+                #sizes
+                idx3 = m.find('data-size="')
+                idx4 = m.find('" id')
+                sizes.append(m[idx3+11:idx4])
+            
+    aff = np.column_stack((sizes,prices))
+    return aff
 
 
 def newURL(urlid):
@@ -866,6 +963,7 @@ def makeBuyList(easypeesy):
     
     buylist = []
     for url in easypeesy[:50]:
+        #print(buylist)
         print(url)
         if "abovchem" in url[0]:
             aff = abovchemPrice(url[0])
@@ -945,10 +1043,15 @@ def makeBuyList(easypeesy):
             rep = list(itertools.repeat(url, length))
             aff_2 = np.column_stack((aff, rep))
             buylist.append(aff_2)
+        elif "aksci" in url[0]:
+            aff = aksciPrice(url[0])
+            length = len(aff)
+            rep = list(itertools.repeat(url, length))
+            aff_2 = np.column_stack((aff, rep))
+            buylist.append(aff_2)
         
     
     end = time.time()
-    #print(end - start)
     return buylist
     
     
