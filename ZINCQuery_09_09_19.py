@@ -123,13 +123,19 @@ def vendorURLs(zinc_id_list):
         response = requests.get("http://zinc15.docking.org/substances/"+ cid+"/catitems/subsets/for-sale/table.html")
         xml = BeautifulSoup(response.content,"lxml")
         for paragraphs in xml.find_all("td"):
+            #print(paragraphs)
             try:
                # paragraphs = xml.find_all("td")[i]
                 lines = str(paragraphs).splitlines()
                 for l in lines:
                     para = str(l).splitlines()
                     for p in para:
-                        if p[:12] == "<td><a href=":
+                        if("/catalogs/" in p):
+                            name = p.split("/catalogs/")[1]
+                            if("title" in name):
+                               name = "http://zinc15.docking.org/catalogs/" + name.split('"')[0]
+                               para_1.append([name,cid])
+                        elif p[:12] == "<td><a href=":
                             for x in range(len(p)):
                                 if p[x:x+6] == ' title':
                                     if p[12:x] not in para_1:
@@ -225,6 +231,7 @@ def findEasyVendors(urlist):
     vendors = []
     goodvendors = ["caymanchem", "chem-space", "indofinechemical", "matrixscientific", "mcule", "molport", "apexbt", "abovchem", "bldpharm", "targetmol", "trc-canada", "chemscene", "medchemexp", "sigma", "enamine","aksci"]
     for row in urlist:
+        if("zinc15.docking.org" in row[0]):continue
         for v in goodvendors:
             if v in row[0]:
                 vendors.append(row)
@@ -274,24 +281,27 @@ def makeEasy(cid):
 
 
 def abovchemPrice(urlid):
-    prices = []
-    sizes = []
-    response = requests.get(urlid)
-    xml = BeautifulSoup(response.content,"lxml")
-    #fetching quantity
-    for size_td in xml.find_all("td","col1"):
-        size = size_td.text
-        size = size.encode('ascii','ignore').strip()
-        if len(size) <= 5: #this might cause problems if they sell things in DMSO
-            sizes.append(size)
-    #fetching prices
-    for price_td in xml.find_all("td","col3"):
-        price = price_td.text
-        price = price.encode('ascii','ignore').strip()
-        price = str(price)
-        if "$" in price:
-            prices.append(price[3:].replace(" ", ""))
-    aff = np.column_stack((sizes,prices))
+    try:  
+       prices = []
+       sizes = []
+       response = requests.get(urlid)
+       xml = BeautifulSoup(response.content,"lxml")
+       #fetching quantity
+       for size_td in xml.find_all("td","col1"):
+           size = size_td.text
+           size = size.encode('ascii','ignore').strip()
+           if len(size) <= 5: #this might cause problems if they sell things in DMSO
+               sizes.append(size)
+       #fetching prices
+       for price_td in xml.find_all("td","col3"):
+           price = price_td.text
+           price = price.encode('ascii','ignore').strip()
+           price = str(price)
+           if "$" in price:
+               prices.append(price[3:].replace(" ", ""))
+       aff = np.column_stack((sizes,prices))
+    except:
+       aff = np.column_stack(([],[]))
     return aff
 
 
@@ -386,18 +396,22 @@ def caymanPrice(urlpage):
 
 
 def chemscenePrice(compdurl):
+    print('chemscene1')
     for i in range(len(compdurl)):
         if compdurl[i:i+11] == "productObj=":
             choiceID = compdurl[i+11:]
+    print('chemscene2')
 
     response = requests.get(compdurl)
+    print('chemscene3')
 
     casNos = []
     vendorid = []
     xml = BeautifulSoup(response.content,"lxml")
+    print('chemscene4')
     
     for div in xml:
-        d = div.encode('ascii','ignore').splitlines()
+        d = str(div).splitlines()
         for ind in d: 
             line = ind.splitlines()
             if "CAS No." in str(line):
@@ -408,20 +422,30 @@ def chemscenePrice(compdurl):
                 for i in range(len(str(line))):
                     if str(line)[i:i+7] == ' class=':
                         vendorid.append(str(line)[12:i-1])
+    print('chemscene5')
     while '' in casNos:
         casNos.remove('')
     crossref = np.column_stack((casNos, vendorid))
+    print('chemscene6')
 
     for i in range(len(crossref)):
         if crossref[i][1] == choiceID:
             correctcas = crossref[i][0]
+    print('chemscene7')
 
     sizes = []
     prices = []
-    response = requests.get("https://www.chemscene.com/" + correctcas + ".html")
+    print(correctcas)
+    print("https://www.chemscene.com/" + correctcas + ".html")
+    response = requests.get("https://www.chemscene.com/" + str(correctcas) + ".html")
+    print('chemscene8')
     xml = BeautifulSoup(response.content,"lxml")
+    #print(xml)
+    prices = xml.findAll('input', {'class' : 'originalPrice'})
+    prices = [x['value'] for x in prices]
+    print(prices)
     for div in xml:
-        d = div.encode('ascii','ignore').splitlines()
+        d = str(div).splitlines()
         for ind in d:
             if ' prctbl-size' in str(ind):
                 for i in range(len(ind)):
@@ -430,13 +454,15 @@ def chemscenePrice(compdurl):
                         for j in range(len(ind)):
                             if line[j:j+3] == "</s":
                                 sizes.append(line[:j].replace(" ",""))
+                                '''
             elif 's" id="price' in ind:
                 for i in range(len(ind)):
                     if ind[i:i+9] == 'id="price':
                         for j in range(len(ind)):
                             if ind[j:j+8] == "</span><":
                                  prices.append(ind[i+12:j])
-
+                                 '''
+    print(sizes)
     aff = np.column_stack((sizes,prices))
     return aff
 
@@ -455,13 +481,21 @@ def enaminePrice(urlpage):
     driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
     driver.get(urlpage);
     innerHTML = driver.execute_script("return document.body.innerHTML")
-    time.sleep(5) # lets the user see something
+    #time.sleep(5) # lets the user see something
     #html = innerHTML.encode('ascii','ignore').splitlines()
+#c-price
+    try:
+       element = WebDriverWait(driver, 10).until(
+          EC.presence_of_element_located((By.CLASS_NAME, "c-price"))
+       )
+       html = innerHTML.encode('ascii','ignore').splitlines()
+    except:
+       html = ["Sorry, nothing found matching your search criteria."]
+    finally:
+       driver.quit()
 
-    html = str(innerHTML).splitlines()
-
-    time.sleep(5) # lets the user see something
-    driver.quit()
+    #time.sleep(5) # lets the user see something
+    #html = innerHTML.encode('ascii','ignore').splitlines()
     
     #checking that valid search results page was found
     pagefound = 0
@@ -535,29 +569,29 @@ def matrixPrice(urlid):
     prices = []
     response = requests.get(urlid)
     xml = BeautifulSoup(response.text,features="lxml")
+    #cnt = 0
     for size_str in xml.find_all("td"):
         #fetching size
-        size = size_str.text
-        size = size.encode('ascii','ignore').strip()
+        #print(size_str.text)
+        size = size_str.text.strip()
+        #size = size.encode('ascii','ignore').strip()
         size = str(size)
-        if "t" in size:
-            idx1 = size.find("\\")
-            sizes.append(size[2:idx1])
+        #print(size,cnt)
+        #cnt+=1
+        if "g" in size:
+            idx1 = size.find("g")
+            sizes.append(size[0:idx1+1])
         #fetching price
     for price_sp in xml.find_all("span", "price"):
         price = price_sp.text
         price = price.encode('ascii','ignore').strip()
         prices.append(price[1:])
 
+    print(sizes)
+    print(prices)
     aff = np.column_stack((sizes,prices))
         
     return aff
-
-
-# ### MCULE
-
-# In[28]:
-
 
 def mculePrice(urlid):
     sizes = []
@@ -670,6 +704,7 @@ def molportPrice(urlid):
 def aksciPrice(urlid):
     #https://aksci.com/item_detail.php?cat=F336
    ak_id = urlid.split('=')[1] 
+   
    cookies = {
        'PHPSESSID': '4b289e9ols212h2h2hss60kct6',
        'aksci': '99+50+1+1+DESC',
@@ -701,7 +736,11 @@ def aksciPrice(urlid):
        ('width', '420'),
    )
    
-   response = requests.get('https://aksci.com/pricing.php', headers=headers, params=params, cookies=cookies)
+   try:
+      response = requests.get('https://aksci.com/pricing.php', headers=headers, params=params, cookies=cookies,timeout=1)
+   except requests.exceptions.Timeout:
+      aff = np.column_stack(([], []))
+      return aff
    
    soup = BeautifulSoup(response.text, 'lxml')
    sizes = []
@@ -790,106 +829,111 @@ def newURL(urlid):
 
 
 def sigmaPrice(urlpage):
-    
-    urlpage2 = newURL(urlpage) #transforming url because sigma aldrich sucks
-    
-    #first driver call
-    
-    driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
-    driver.get(urlpage2);
-    innerHTML = driver.execute_script("return document.body.innerHTML")
-    time.sleep(5) # lets the user see something
+    try: 
+       urlpage2 = newURL(urlpage) #transforming url because sigma aldrich sucks
+       
+       #first driver call
+       
+       driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
+       driver.get(urlpage2);
+       innerHTML = driver.execute_script("return document.body.innerHTML")
+       time.sleep(5) # lets the user see something
+       innerHTML = innerHTML.encode("ascii","ignore")
+       html = str(innerHTML).splitlines()
 
-    html = str(innerHTML).splitlines()
+       time.sleep(5) # lets the user see something
+       driver.quit()
+       
+       #What's the real compound name because this wasn't already convoluted enough
 
-    time.sleep(5) # lets the user see something
-    driver.quit()
-    
-    #What's the real compound name because this wasn't already convoluted enough
+       compdname = ""
+       for h in html:
+           if "breadcrumbOriginalTextSearched" in h:
+               for x in range(len(h)):
+                   if h[x:x+7] == 'ched">"':
+                       for y in range(len(h)):
+                           if h[y:y+13] == '"</span><span':
+                               compdname = h[x+7:y].lower()
+       
+       #Sigma Aldrich's url formatting can go to hell
 
-    compdname = ""
-    for h in html:
-        if "breadcrumbOriginalTextSearched" in h:
-            for x in range(len(h)):
-                if h[x:x+7] == 'ched">"':
-                    for y in range(len(h)):
-                        if h[y:y+13] == '"</span><span':
-                            compdname = h[x+7:y].lower()
-    
-    #Sigma Aldrich's url formatting can go to hell
+       if "|" in urlpage:
+           if "USP" in urlpage:
+               urlpage3 = "https://www.sigmaaldrich.com/catalog/product/usp/" + compdname + "?lang=en&region=US.php"
+           elif "VETEC" in urlpage:
+               urlpage3 = "https://www.sigmaaldrich.com/catalog/product/vetec/" + compdname + "?lang=en&region=US.php"
+           elif "SIGMA" in urlpage:
+               urlpage3 = "https://www.sigmaaldrich.com/catalog/product/sigma/" + compdname + "?lang=en&region=US"
+           elif "SIAL" in urlpage:
+               urlpage3 = "https://www.sigmaaldrich.com/catalog/product/sial/" + compdname + "?lang=en&region=US"
+           else: 
+               urlpage3 = 'https://www.sigmaaldrich.com/catalog/product/aldrich/' + compdname + '?lang=en&region=US.php'
+       else:
+           urlpage3 = 'https://www.sigmaaldrich.com/catalog/product/aldrich/' + compdname + '?lang=en&region=US.php'
 
-    if "|" in urlpage:
-        if "USP" in urlpage:
-            urlpage3 = "https://www.sigmaaldrich.com/catalog/product/usp/" + compdname + "?lang=en&region=US.php"
-        elif "VETEC" in urlpage:
-            urlpage3 = "https://www.sigmaaldrich.com/catalog/product/vetec/" + compdname + "?lang=en&region=US.php"
-        elif "SIGMA" in urlpage:
-            urlpage3 = "https://www.sigmaaldrich.com/catalog/product/sigma/" + compdname + "?lang=en&region=US"
-        elif "SIAL" in urlpage:
-            urlpage3 = "https://www.sigmaaldrich.com/catalog/product/sial/" + compdname + "?lang=en&region=US"
-        else: 
-            urlpage3 = 'https://www.sigmaaldrich.com/catalog/product/aldrich/' + compdname + '?lang=en&region=US.php'
-    else:
-        urlpage3 = 'https://www.sigmaaldrich.com/catalog/product/aldrich/' + compdname + '?lang=en&region=US.php'
+       # 2nd driver call
+       
+       if compdname != "":
+           driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
 
-    # 2nd driver call
-    
-    if compdname != "":
-        driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
+           driver.get(urlpage3);
+           innerHTML = driver.execute_script("return document.body.innerHTML")
+           time.sleep(5) # lets the user see something
 
-        driver.get(urlpage3);
-        innerHTML = driver.execute_script("return document.body.innerHTML")
-        time.sleep(5) # lets the user see something
+           innerHTML = innerHTML.encode("ascii","ignore")
+           html = str(innerHTML).splitlines()
 
-        html = str(innerHTML).splitlines()
+           time.sleep(5) # lets the user see something
+           driver.quit()
+       
+       #making sure page loads
+       
+       error404 = 0
+       for h in html:
+           if "sorry" in h:
+               error404 = 1
+               
+       #making sure product is in stock
+       
+       discontinued = 0
+       for h in html:
+           if "discontinued" in h:
+               discontinued = 1
+           if "still have inventory in stock" in h:
+               discontinued = 0
 
-        time.sleep(5) # lets the user see something
-        driver.quit()
-    
-    #making sure page loads
-    
-    error404 = 0
-    for h in html:
-        if "sorry" in h:
-            error404 = 1
-            
-    #making sure product is in stock
-    
-    discontinued = 0
-    for h in html:
-        if "discontinued" in h:
-            discontinued = 1
-        if "still have inventory in stock" in h:
-            discontinued = 0
+       # finally fetch prices and package sizes
+       
+       sizes = []
+       prices = []
+       val = compdname.upper() +"-"
 
-    # finally fetch prices and package sizes
-    
-    sizes = []
-    prices = []
-    val = compdname.upper() +"-"
+       if error404 == 0:
+           if discontinued == 0:
+               if compdname != "":
+                   for h in html:
+                       if val in h:
+                           d = str(h).split()
+                           for ind in d:
+                               if "row" in ind: #"CASS" doesn't work
+                                   for x in range(len(ind)):
+                                       if ind[x] == "-":
+                                           size = ind[x+1:].replace('"><td','')
+                                           sizes.append(size.lower())
+                       if "USD" in h:
+                           d = str(h).split()
+                           for ind in d:
+                               for x in range(len(ind)):
+                                   if ind[x:x+6] == "USD#@#":
+                                       for y in range(len(h)):
+                                           if ind[y:y+10] == '"></td><td':
+                                               prices.append(ind[x+6:y])
+       aff = np.column_stack((sizes, prices))
+    except:
+      sizes = []
+      prices = []
+      aff = np.column_stack((sizes, prices))
 
-    if error404 == 0:
-        if discontinued == 0:
-            if compdname != "":
-                for h in html:
-                    if val in h:
-                        d = str(h).split()
-                        for ind in d:
-                            if "row" in ind: #"CASS" doesn't work
-                                for x in range(len(ind)):
-                                    if ind[x] == "-":
-                                        size = ind[x+1:].replace('"><td','')
-                                        sizes.append(size.lower())
-                    if "USD" in h:
-                        d = str(h).split()
-                        for ind in d:
-                            for x in range(len(ind)):
-                                if ind[x:x+6] == "USD#@#":
-                                    for y in range(len(h)):
-                                        if ind[y:y+10] == '"></td><td':
-                                            prices.append(ind[x+6:y])
-    
-    aff = np.column_stack((sizes, prices))
     
     return aff
 
@@ -904,22 +948,44 @@ def targetmolPrice(urlid):
     prices = []
     response = requests.get(urlid)
     xml = BeautifulSoup(response.content,"lxml")
-    for z in range(0,20):
-        paragraphs = xml.find_all("td")[z]
-        lines = str(paragraphs).splitlines()
-        mat = lines[0].splitlines()
-        for m in mat:
-            if "." in str(m):
-                for x in range(len(m)):
-                    if m[x:x+5] == '</td>':
-                        prices.append(m[4:x])
-                del m
-            elif " " in m:
-                if "<p" not in m:
-                    if "td " not in m:
-                        for x in range(len(m)):
-                            if m[x:x+5] == '</td>':
-                                sizes.append(m[4:x].replace(" ",""))
+    div = xml.find("div", class_="cpdprice")
+    if(div==None):return
+    #print(div)
+
+    for row in div.find_all("tr"):
+        cols = list(row.find_all("td"))
+        cols = [x.text for x in cols]
+        if(len(cols)!=4):continue
+        if('mg' not in cols[0]):continue
+        if('In stock' not in cols[1]):continue
+        price = cols[2].replace("\n","").replace("\r","").strip()
+        size = cols[0].replace("\n","").replace("\r","").strip()
+        sizes.append(str(size))
+        prices.append(str(price))
+
+
+
+    #for z in range(0,20):
+    #    paragraphs = xml.find_all("td")[z]
+#    for paragraphs in xml.find_all("td"):
+#        lines = str(paragraphs).splitlines()
+#        mat = lines[0].splitlines()
+#        for m in mat:
+#            print(m)
+#            if "." in str(m):
+#                for x in range(len(m)):
+#                    if m[x:x+5] == '</td>':
+#                        prices.append(m[4:x])
+#                del m
+#            elif " " in m:
+#                if "<p" not in m:
+#                    if "td " not in m:
+#                        for x in range(len(m)):
+#                            if m[x:x+5] == '</td>':
+#                                sizes.append(m[4:x].replace(" ",""))
+#    print(sizes)
+#    print(prices)
+
     aff = np.column_stack((sizes, prices))
     return aff
 
@@ -1069,6 +1135,8 @@ def makeBuyList(easypeesy):
 
 # getting vendor name from url
 def getVendorName(url):
+    if("zinc15.docking.org" in url):
+        return url.split("/")[-2]
     idx1 = url.find("www.")
     idx2 = url.find(".com")
     if "indofine" in url:

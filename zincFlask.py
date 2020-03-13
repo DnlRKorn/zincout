@@ -1,6 +1,6 @@
 from flask import request,jsonify, Flask
 import re
-
+import requests
 #import zinc
 import ZINCQuery_09_09_19 as zinc
 
@@ -14,10 +14,29 @@ def convertToMg(x):
     if(r==None):return "N\A"
     else: return str(mult * int(r.group(0)))
 
+
+def convertCID(cid):
+    #http://zinc15.docking.org/substances/search/?q=ZINC59631
+    #<a href="/substances/
+    url = "http://zinc15.docking.org/substances/search/?q="+cid
+    #ZINC59631
+    try:
+       response = requests.get(url)
+    except:
+       return cid
+    for line in response.text.split("\n"):
+        if('<a href="/substances/ZINC' in line):
+            print(line)
+            new_cid = line.split('/substances/')[1].split("/")[0]
+            return str(new_cid)
+
+
+
 @app.route('/price',methods=['GET'])
 def my_route():
     print('hi')
     cid = request.args.get('cid', default = "ZINC19795634", type = str)
+
     print(cid)
     cids = cid.split('\n')
     print(cids)
@@ -33,7 +52,8 @@ def my_route():
     for cid in cids:
        if('ZINC' not in cid):continue
        cid = cid.strip()
-       print('PRICE QUERY',cid,desiredlimit,desiredsize)
+       cid2 = convertCID(cid)
+       print('PRICE QUERY',cid2,desiredlimit,desiredsize)
        [easypeesy,noteasy] = zinc.makeEasy(cid)
        for i in range(5): 
            try: 
@@ -66,7 +86,7 @@ def my_route():
                      continue
                  val = "%.2f"%val
                  vend = zinc.getVendorName(pr[2])
-                 affordable.append([pr[0],pr[1],pr[2],val,vend,pr[3]])
+                 affordable.append([pr[0],pr[1],pr[2],val,vend,cid])
        for x in noteasy:
            link = x[0]
            vend = zinc.getVendorName(link)
